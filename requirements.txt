@@ -1,0 +1,12 @@
+google-adk==0.4.0
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
+google-api-python-client==2.131.0
+firebase-admin==6.5.0
+groq==0.9.0
+python-telegram-bot==21.3
+python-dotenv==1.0.1
+requests==2.32.3
+schedule==1.2.2
+pytz==2024.1
+gradio==4.44.0

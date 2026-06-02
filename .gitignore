@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pickle
+token.pickle
+.env
+zenitsu-62f36-firebase-adminsdk-fbsvc-b6a3808636.json
+firebase-key.json
+credentials.json
+*.pyc
