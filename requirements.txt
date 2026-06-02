@@ -9,4 +9,5 @@ python-dotenv
 requests
 schedule
 pytz
-huggingface-hub==0.23.4
+fastapi
+uvicorn
