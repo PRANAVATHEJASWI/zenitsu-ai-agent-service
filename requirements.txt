@@ -9,3 +9,5 @@ python-dotenv
 requests
 schedule
 pytz
+gradio==3.50.2
+huggingface-hub==0.19.4

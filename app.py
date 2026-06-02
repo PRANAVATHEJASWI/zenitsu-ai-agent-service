@@ -1,4 +1,4 @@
-import threading
+﻿import threading
 import gradio as gr
 from agent import main as run_agent
 from db import get_todays_summary
@@ -33,6 +33,6 @@ with gr.Blocks(title="Zenitsu Email Agent") as demo:
     gr.Markdown("Monitoring your inbox every 30 minutes.")
     status = gr.Markdown(get_status())
     refresh_btn = gr.Button("Refresh Stats")
-    refresh_btn.click(fn=get_status, outputs=status)
+    refresh_btn.click(fn=get_status, inputs=None, outputs=status)
 
 demo.launch(server_name="0.0.0.0", server_port=7860)
