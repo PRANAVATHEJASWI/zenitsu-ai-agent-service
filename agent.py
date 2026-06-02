@@ -77,9 +77,9 @@ def main():
     triage_inbox()
 
     schedule.every(30).minutes.do(triage_inbox)
-    schedule.every().day.at("20:00").do(send_digest)
+    schedule.every().day.at("21:00").do(send_digest)
 
-    print(f"\n[{_now()}] Scheduler running. Triage every 30 min. Digest at 20:00 IST.")
+    print(f"\n[{_now()}] Scheduler running. Triage every 30 min. Digest at 21:00 IST.")
 
     while True:
         schedule.run_pending()
