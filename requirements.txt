@@ -9,4 +9,3 @@ python-dotenv
 requests
 schedule
 pytz
-gradio==4.44.0
