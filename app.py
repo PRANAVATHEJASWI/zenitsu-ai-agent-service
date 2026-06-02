@@ -13,7 +13,7 @@ def get_status():
     try:
         summary = get_todays_summary()
         total = sum(len(v) for v in summary.values())
-        lines = [f"**Emails processed today: {total}**\n"]
+        lines = [f"Emails processed today: {total}\n"]
         emoji_map = {
             "legitimate": "✅", "newsletter": "📰",
             "promotional": "🛍️", "spam": "🚫", "phishing": "⚠️"
@@ -28,11 +28,12 @@ def get_status():
 
 start_agent()
 
-with gr.Blocks(title="Zenitsu Email Agent") as demo:
-    gr.Markdown("## ⚡ Zenitsu Email Agent")
-    gr.Markdown("Monitoring your inbox every 30 minutes.")
-    status = gr.Markdown(get_status())
-    refresh_btn = gr.Button("Refresh Stats")
-    refresh_btn.click(fn=get_status, inputs=None, outputs=status)
+demo = gr.Interface(
+    fn=get_status,
+    inputs=[],
+    outputs=gr.Textbox(label="Today's Email Summary", lines=10),
+    title="Zenitsu Email Agent",
+    description="Monitoring your inbox every 30 minutes. Click Run to refresh.",
+)
 
 demo.launch(server_name="0.0.0.0", server_port=7860)
