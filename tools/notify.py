@@ -1,9 +1,10 @@
 import requests
+import time
 from datetime import date
 
-NOTIFICATION_SERVICE_URL = (
-    "https://zenitsu-notification-service.onrender.com/notify"
-)
+BASE_URL = "https://zenitsu-notification-service.onrender.com"
+WAKE_URL = f"{BASE_URL}/wake"
+NOTIFY_URL = f"{BASE_URL}/notify"
 
 CATEGORY_EMOJI = {
     "legitimate": "✅",
@@ -15,25 +16,96 @@ CATEGORY_EMOJI = {
 }
 
 
+def wake_service(
+    max_wait_seconds: int = 300,
+    poll_interval: int = 5,
+) -> bool:
+    """
+    Wake Render service and wait until it responds.
+
+    Returns:
+        True if service becomes available.
+        False if timeout occurs.
+    """
+
+    print("[notification-service] Waking service...")
+
+    start_time = time.time()
+
+    while (time.time() - start_time) < max_wait_seconds:
+        try:
+            response = requests.get(
+                WAKE_URL,
+                timeout=15,
+            )
+
+            if response.status_code == 200:
+                print(
+                    "[notification-service] Service is awake."
+                )
+                return True
+
+        except Exception:
+            pass
+
+        print(
+            f"[notification-service] "
+            f"Waiting {poll_interval}s..."
+        )
+
+        time.sleep(poll_interval)
+
+    print(
+        "[notification-service] "
+        "Failed to wake service within timeout."
+    )
+
+    return False
+
+
 def _send(text: str):
+    """
+    Wake Render service and send notification.
+    """
+
+    if not wake_service():
+        print(
+            "[notification-service] "
+            "Notification skipped due to wake timeout."
+        )
+        return
+
     try:
-        r = requests.post(
-            NOTIFICATION_SERVICE_URL,
+        response = requests.post(
+            NOTIFY_URL,
             json={"message": text},
             timeout=30,
         )
 
-        if r.status_code != 200:
+        if response.status_code == 200:
             print(
-                f"[notification-service] Error {r.status_code}: "
-                f"{r.text}"
+                "[notification-service] "
+                "Notification sent successfully."
+            )
+        else:
+            print(
+                f"[notification-service] "
+                f"Error {response.status_code}: "
+                f"{response.text}"
             )
 
     except Exception as e:
-        print(f"[notification-service] Request failed: {e}")
+        print(
+            f"[notification-service] "
+            f"Request failed: {e}"
+        )
 
 
-def alert_phishing(sender: str, subject: str, reason: str):
+def alert_phishing(
+    sender: str,
+    subject: str,
+    reason: str,
+):
     _send(
         f"⚠️ *PHISHING ALERT*\n\n"
         f"*From:* `{sender}`\n"
@@ -45,7 +117,11 @@ def alert_phishing(sender: str, subject: str, reason: str):
 
 def send_daily_digest(summary: dict):
     today = date.today().strftime("%d %b %Y")
-    total = sum(len(v) for v in summary.values())
+
+    total = sum(
+        len(items)
+        for items in summary.values()
+    )
 
     if total == 0:
         _send(
@@ -59,18 +135,24 @@ def send_daily_digest(summary: dict):
         f"_{total} emails processed_\n",
     ]
 
-    for cat in [
+    for category in [
         "legitimate",
         "newsletter",
         "promotional",
         "spam",
         "phishing",
     ]:
-        items = summary.get(cat, [])
+        items = summary.get(category, [])
+
         if items:
-            emoji = CATEGORY_EMOJI.get(cat, "•")
+            emoji = CATEGORY_EMOJI.get(
+                category,
+                "•",
+            )
+
             lines.append(
-                f"{emoji} *{cat.capitalize()}:* {len(items)}"
+                f"{emoji} *{category.capitalize()}:* "
+                f"{len(items)}"
             )
 
     actioned = (
@@ -79,15 +161,24 @@ def send_daily_digest(summary: dict):
     )
 
     if actioned:
-        lines.append("\n*Unsubscribed / flagged:*")
+        lines.append(
+            "\n*Unsubscribed / flagged:*"
+        )
 
         for item in actioned[:8]:
-            subject = item["subject"][:45]
-            sender = item["sender"][:35]
+            subject = item.get(
+                "subject",
+                "No Subject",
+            )[:45]
+
+            sender = item.get(
+                "sender",
+                "Unknown Sender",
+            )[:35]
 
             lines.append(
-                f"  • {subject}\n"
-                f"    `{sender}`"
+                f"• {subject}\n"
+                f"  `{sender}`"
             )
 
     _send("\n".join(lines))
@@ -95,6 +186,10 @@ def send_daily_digest(summary: dict):
 
 def send_startup_message():
     _send(
-        "🤖 *Zenitsu Agent started* — "
-        "monitoring your inbox every 30 minutes."
+        "🤖 *Zenitsu Agent started*\n\n"
+        "Monitoring your inbox every 30 minutes."
     )
+
+
+if __name__ == "__main__":
+    send_startup_message()
