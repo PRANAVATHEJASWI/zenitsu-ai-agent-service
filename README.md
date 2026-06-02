@@ -7,7 +7,7 @@ emoji: ⚡
 
 colorFrom: yellow
 
-colorTo: orange
+colorTo: red
 
 sdk: gradio
 
