@@ -1,3 +1,4 @@
+import os
 import requests
 import time
 from datetime import date
@@ -12,67 +13,32 @@ CATEGORY_EMOJI = {
     "promotional": "🛍️",
     "spam": "🚫",
     "phishing": "⚠️",
-    "unknown": "❓",
 }
 
 
-def wake_service(
-    max_wait_seconds: int = 300,
-    poll_interval: int = 5,
-) -> bool:
-    """
-    Wake Render service and wait until it responds.
-
-    Returns:
-        True if service becomes available.
-        False if timeout occurs.
-    """
-
+def wake_service(max_wait_seconds: int = 300, poll_interval: int = 5) -> bool:
     print("[notification-service] Waking service...")
-
     start_time = time.time()
 
     while (time.time() - start_time) < max_wait_seconds:
         try:
-            response = requests.get(
-                WAKE_URL,
-                timeout=15,
-            )
-
+            response = requests.get(WAKE_URL, timeout=15)
             if response.status_code == 200:
-                print(
-                    "[notification-service] Service is awake."
-                )
+                print("[notification-service] Service is awake.")
                 return True
-
         except Exception:
             pass
 
-        print(
-            f"[notification-service] "
-            f"Waiting {poll_interval}s..."
-        )
-
+        print(f"[notification-service] Waiting {poll_interval}s...")
         time.sleep(poll_interval)
 
-    print(
-        "[notification-service] "
-        "Failed to wake service within timeout."
-    )
-
+    print("[notification-service] Failed to wake service within timeout.")
     return False
 
 
 def _send(text: str):
-    """
-    Wake Render service and send notification.
-    """
-
     if not wake_service():
-        print(
-            "[notification-service] "
-            "Notification skipped due to wake timeout."
-        )
+        print("[notification-service] Notification skipped due to wake timeout.")
         return
 
     try:
@@ -81,53 +47,31 @@ def _send(text: str):
             json={"message": text},
             timeout=30,
         )
-
         if response.status_code == 200:
-            print(
-                "[notification-service] "
-                "Notification sent successfully."
-            )
+            print("[notification-service] Notification sent successfully.")
         else:
-            print(
-                f"[notification-service] "
-                f"Error {response.status_code}: "
-                f"{response.text}"
-            )
-
+            print(f"[notification-service] Error {response.status_code}: {response.text}")
     except Exception as e:
-        print(
-            f"[notification-service] "
-            f"Request failed: {e}"
-        )
+        print(f"[notification-service] Request failed: {e}")
 
 
-def alert_phishing(
-    sender: str,
-    subject: str,
-    reason: str,
-):
+def alert_phishing(sender: str, subject: str, reason: str, domain: str = ""):
     _send(
         f"⚠️ *PHISHING ALERT*\n\n"
         f"*From:* `{sender}`\n"
+        f"*Domain:* `{domain}`\n"
         f"*Subject:* {subject}\n"
-        f"*Why flagged:* {reason}\n\n"
-        f"_Do not click any links in this email._"
+        f"*Why:* {reason}\n\n"
+        f"_Do not click any links._"
     )
 
 
 def send_daily_digest(summary: dict):
     today = date.today().strftime("%d %b %Y")
-
-    total = sum(
-        len(items)
-        for items in summary.values()
-    )
+    total = sum(len(items) for items in summary.values())
 
     if total == 0:
-        _send(
-            f"📬 *Email Digest — {today}*\n\n"
-            f"No new emails today."
-        )
+        _send(f"📬 *Email Digest — {today}*\n\nNo emails today.")
         return
 
     lines = [
@@ -135,51 +79,31 @@ def send_daily_digest(summary: dict):
         f"_{total} emails processed_\n",
     ]
 
-    for category in [
-        "legitimate",
-        "newsletter",
-        "promotional",
-        "spam",
-        "phishing",
-    ]:
+    # Category summary
+    for category in ["legitimate", "newsletter", "promotional", "spam", "phishing"]:
         items = summary.get(category, [])
-
         if items:
-            emoji = CATEGORY_EMOJI.get(
-                category,
-                "•",
-            )
+            emoji = CATEGORY_EMOJI.get(category, "•")
+            lines.append(f"{emoji} *{category.capitalize()}:* {len(items)}")
 
+    lines.append("\n*Details (reply with numbers to unsubscribe):*\n")
+
+    # Numbered list of ALL emails
+    counter = 1
+    for category in ["legitimate", "newsletter", "promotional", "spam", "phishing"]:
+        items = summary.get(category, [])
+        for item in items:
+            subject = item.get("subject", "No Subject")[:40]
+            domain = item.get("domain", "unknown")[:25]
+            emoji = CATEGORY_EMOJI.get(category, "•")
+            
             lines.append(
-                f"{emoji} *{category.capitalize()}:* "
-                f"{len(items)}"
+                f"{counter}. {emoji} {subject}\n"
+                f"   From: `{domain}`"
             )
+            counter += 1
 
-    actioned = (
-        summary.get("spam", [])
-        + summary.get("promotional", [])
-    )
-
-    if actioned:
-        lines.append(
-            "\n*Unsubscribed / flagged:*"
-        )
-
-        for item in actioned[:8]:
-            subject = item.get(
-                "subject",
-                "No Subject",
-            )[:45]
-
-            sender = item.get(
-                "sender",
-                "Unknown Sender",
-            )[:35]
-
-            lines.append(
-                f"• {subject}\n"
-                f"  `{sender}`"
-            )
+    lines.append("\n_Reply with: unsubscribe 1 3 5_ (unsubscribe from items 1, 3, 5)")
 
     _send("\n".join(lines))
 
@@ -187,9 +111,6 @@ def send_daily_digest(summary: dict):
 def send_startup_message():
     _send(
         "🤖 *Zenitsu Agent started*\n\n"
-        "Monitoring your inbox every 30 minutes."
+        "Monitoring your inbox every 30 minutes.\n"
+        "Digest at 8:00 PM IST."
     )
-
-
-if __name__ == "__main__":
-    send_startup_message()
