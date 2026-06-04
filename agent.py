@@ -60,13 +60,19 @@ def triage_inbox():
     print(f"[{_now()}] Done. {counts}")
 
 
-def send_digest():
-    print(f"\n[{_now()}] Sending daily digest...")
-    summary = get_todays_summary()
-    send_daily_digest(summary)
-    total = sum(len(v) for v in summary.values())
-    print(f"[{_now()}] Digest sent. {total} emails in summary.")
-
+def send_digest_wrapper():
+    """Run digest only during 8:00 PM - 8:10 PM IST."""
+    tz = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(tz)
+    
+    # Check if current time is between 20:00 and 20:10 IST
+    if now.hour == 20 and 0 <= now.minute < 10:
+        print(f"\n[{_now()}] Sending daily digest...")
+        summary = get_todays_summary()
+        send_daily_digest(summary)
+        total = sum(len(v) for v in summary.values())
+        print(f"[{_now()}] Digest sent. {total} emails in summary.")
+    
 
 def main():
     print("=" * 50)
@@ -76,10 +82,13 @@ def main():
     send_startup_message()
     triage_inbox()
 
+    # Run triage every 30 minutes
     schedule.every(30).minutes.do(triage_inbox)
-    schedule.every().day.at("21:45").do(send_digest)
+    
+    # Check every 10 minutes if it's 8pm IST
+    schedule.every(10).minutes.do(send_digest_wrapper)
 
-    print(f"\n[{_now()}] Scheduler running. Triage every 30 min. Digest at 21:45 IST.")
+    print(f"\n[{_now()}] Scheduler running. Triage every 30 min. Digest check every 10 min (sends at 8:00 PM IST).")
 
     while True:
         schedule.run_pending()
