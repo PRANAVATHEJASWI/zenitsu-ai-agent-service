@@ -15,7 +15,17 @@ load_dotenv()
 TIMEZONE = pytz.timezone(os.getenv("TIMEZONE", "Asia/Kolkata"))
 UNSUBSCRIBE_CATEGORIES = {"spam", "promotional"}
 
+import requests
 
+HF_SPACE_URL = "https://Pranavathejaswi-zenitsu-agent.hf.space"
+
+def keep_alive():
+    """Ping self every 5 minutes to prevent sleep."""
+    try:
+        requests.get(f"{HF_SPACE_URL}/", timeout=5)
+        print(f"[{_now()}] Keep-alive ping sent.")
+    except Exception as e:
+        print(f"[{_now()}] Keep-alive ping failed: {e}")
 def _now() -> str:
     return datetime.now(TIMEZONE).strftime("%H:%M:%S")
 
@@ -87,7 +97,7 @@ def main():
     
     # Check every 10 minutes if it's 8pm IST
     schedule.every(10).minutes.do(send_digest_wrapper)
-
+    schedule.every(5).minutes.do(keep_alive)
     print(f"\n[{_now()}] Scheduler running. Triage every 30 min. Digest check every 10 min (sends at 8:00 PM IST).")
 
     while True:
