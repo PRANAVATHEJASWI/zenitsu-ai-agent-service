@@ -1,3 +1,4 @@
+import datetime
 import os
 import requests
 import time
@@ -114,3 +115,24 @@ def send_startup_message():
         "Monitoring your inbox every 30 minutes.\n"
         "Digest at 8:00 PM IST."
     )
+    
+def send_reminder_alert(task: str):
+    """Send reminder to Render to display with buttons."""
+    import uuid
+    reminder_id = str(uuid.uuid4())[:8]
+    
+    try:
+        response = requests.post(
+            f"{BASE_URL}/send_reminder",
+            json={
+                "task": task,
+                "id": reminder_id,
+            },
+            timeout=30,
+        )
+        if response.status_code == 200:
+            print(f"[reminder-alert] Reminder sent: {task}")
+            return True
+    except Exception as e:
+        print(f"[reminder-alert] Error: {e}")
+    return False

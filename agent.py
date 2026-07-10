@@ -10,6 +10,10 @@ from tools.classifier import classify_email
 from tools.notify import alert_phishing, send_daily_digest, send_startup_message
 from db import is_processed, mark_processed, get_todays_summary
 
+from tools.reminder_db import get_due_reminders
+from tools.reminder_parser import parse_reminder
+from tools.notify import send_reminder_alert
+
 load_dotenv()
 
 TIMEZONE = pytz.timezone(os.getenv("TIMEZONE", "Asia/Kolkata"))
@@ -82,7 +86,22 @@ def send_digest_wrapper():
         send_daily_digest(summary)
         total = sum(len(v) for v in summary.values())
         print(f"[{_now()}] Digest sent. {total} emails in summary.")
-    
+
+def check_due_reminders():
+    """Check and send due reminders every minute."""
+    due = get_due_reminders()
+    for reminder in due:
+        print(f"[{_now()}] Reminder due: {reminder['task']}")
+        send_reminder_alert(reminder['task'])
+
+def check_reminders():
+    """Check and send due reminders every minute."""
+    due = get_due_reminders()
+    for reminder in due:
+        print(f"[{_now()}] Reminder due: {reminder['task']}")
+        send_reminder_alert(reminder['task'], reminder['natural_time'])
+        mark_reminder_sent(reminder['id'])
+        schedule.every(1).minutes.do(check_reminders) 
 
 def main():
     print("=" * 50)
@@ -98,11 +117,13 @@ def main():
     # Check every 10 minutes if it's 8pm IST
     schedule.every(10).minutes.do(send_digest_wrapper)
     schedule.every(5).minutes.do(keep_alive)
+    schedule.every(1).minutes.do(check_due_reminders)
     print(f"\n[{_now()}] Scheduler running. Triage every 30 min. Digest check every 10 min (sends at 8:00 PM IST).")
 
     while True:
         schedule.run_pending()
         time.sleep(30)
+
 
 
 if __name__ == "__main__":
