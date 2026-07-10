@@ -61,6 +61,11 @@ def index():
     except Exception as ex:
         return HTMLResponse(content=f"<h1>Loading...</h1><p>{ex}</p>")
 
+@app.head("/")
+def head_root():
+    """Handle HEAD requests for uptime monitoring."""
+    return {}
+
 start_agent()
 
 if __name__ == "__main__":
